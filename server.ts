@@ -346,6 +346,31 @@ function translateOffline(text: string, targetLang: string): string | null {
 }
 
 // Translate API Endpoint
+app.get("/api/proxy-image", async (req, res) => {
+  const imageUrl = req.query.url as string;
+  if (!imageUrl) {
+    return res.status(400).send("Missing url parameter");
+  }
+
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.end(buffer);
+  } catch (error: any) {
+    console.error("Proxy image server error:", error);
+    res.status(500).send("Error proxying image");
+  }
+});
+
+// Translate API Endpoint
 app.post("/api/translate", async (req, res) => {
   const { text, sourceLang, targetLang } = req.body;
 

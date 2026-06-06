@@ -6,6 +6,12 @@
 
 # Reindirizzamento delle API alla Serverless Function di Netlify
 [[redirects]]
+  from = "/api/proxy-image"
+  to = "/.netlify/functions/proxy-image"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/translate"
   to = "/.netlify/functions/translate"
   status = 200
