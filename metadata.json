@@ -1,0 +1,6 @@
+{
+  "name": "Editor Multilingue con Tastiera Virtuale",
+  "description": "Editor di testo multilingue con tastiera virtuale integrata per Coreano, Giapponese, Cinese, Arabo, Russo, Hindi, Thai e Italiano. Supporta scrittura in corsivo scolastico o stampatello, traduzione istantanea, inserimento di link e immagini ed esportazione in PDF e TXT.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
