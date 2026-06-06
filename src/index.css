@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Marck+Script&family=Cairo:wght@400;600;700&family=Caveat:wght@400;700&family=Inter:wght@400;500;600;700&family=Mali:ital,wght@0,400;0,600;1,400&family=Gaegu:wght@400;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+Thai:wght@400;600;700&family=Yatra+One&family=Yuji+Syuku&family=Zhi+Mang+Xing&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Custom font style classes for Editor and Preview sheets */
+
+.font-latin-cursive {
+  font-family: 'Caveat', cursive, sans-serif;
+}
+.font-latin-print {
+  font-family: 'Inter', sans-serif;
+}
+
+.font-russian-cursive {
+  font-family: 'Marck Script', cursive, sans-serif;
+}
+.font-russian-print {
+  font-family: 'Inter', sans-serif; /* Russian works on Inter */
+}
+
+.font-arabic-cursive {
+  font-family: 'Aref Ruqaa', serif;
+}
+.font-arabic-print {
+  font-family: 'Cairo', sans-serif;
+}
+
+.font-chinese-cursive {
+  font-family: 'Zhi Mang Xing', cursive, serif;
+}
+.font-chinese-print {
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+.font-japanese-cursive {
+  font-family: 'Yuji Syuku', serif;
+}
+.font-japanese-print {
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+.font-korean-cursive {
+  font-family: 'Gaegu', cursive, sans-serif;
+}
+.font-korean-print {
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.font-hindi-cursive {
+  font-family: 'Yatra One', cursive, serif;
+}
+.font-hindi-print {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+}
+
+.font-thai-cursive {
+  font-family: 'Mali', cursive, sans-serif;
+}
+.font-thai-print {
+  font-family: 'Noto Sans Thai', sans-serif;
+}
+
+/* Custom styling for school exercise paper appearance */
+.lined-paper {
+  background-color: #fcfcf9;
+  background-image: linear-gradient(#e1effa 1px, transparent 1px);
+  background-size: 100% 2rem;
+  line-height: 2rem;
+}
+
+.squared-paper {
+  background-color: #fcfcf9;
+  background-image: linear-gradient(0deg, #e1effa 1px, transparent 1px),
+                    linear-gradient(90deg, #e1effa 1px, transparent 1px);
+  background-size: 1.5rem 1.5rem;
+}
+
+.shadow-paper {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
