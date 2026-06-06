@@ -437,7 +437,7 @@ export default function App() {
         ctx.lineWidth = 1.5;
         
         if (paperStyle === "lined") {
-          const lineGap = 42; // vertical line gap
+          const lineGap = 48; // vertical line gap
           for (let y = 140; y < drawCanvas.height - 100; y += lineGap) {
             ctx.beginPath();
             ctx.moveTo(80, y);
@@ -446,7 +446,7 @@ export default function App() {
           }
         } else {
           // Squared cells grid
-          const cellSize = 35;
+          const cellSize = 42;
           ctx.beginPath();
           for (let x = 80; x < drawCanvas.width - 80; x += cellSize) {
             ctx.moveTo(x, 140);
@@ -510,16 +510,15 @@ export default function App() {
       const startX = 160;
       let startY = 180;
       const maxWidth = drawCanvas.width - 240;
-      const lineHeight = 42;
 
-      // Wrap text helper (highly robust to prevent line cutting / overflow)
-      const wrapTextHelper = (textToWrap: string, alignRight: boolean, fontSize: number, fontNameString: string) => {
+      // Wrap text helper (highly robust to prevent line cutting / overflow with dynamic spacing)
+      const wrapTextHelper = (textToWrap: string, alignRight: boolean, fontSize: number, fontNameString: string, customLineHeight: number) => {
         ctx.font = `${fontSize}px '${fontNameString}', sans-serif`;
         const paras = textToWrap.split("\n");
         for (let p = 0; p < paras.length; p++) {
           const para = paras[p];
           if (para.trim() === "") {
-            startY += lineHeight;
+            startY += customLineHeight;
             continue;
           }
           
@@ -540,7 +539,7 @@ export default function App() {
                   ctx.fillText(currentLine, startX, startY);
                 }
                 currentLine = char;
-                startY += lineHeight;
+                startY += customLineHeight;
               } else {
                 currentLine = testLine;
               }
@@ -559,7 +558,7 @@ export default function App() {
                   ctx.fillText(currentLine, startX, startY);
                 }
                 currentLine = word;
-                startY += lineHeight;
+                startY += customLineHeight;
               } else {
                 currentLine = testLine;
               }
@@ -573,12 +572,16 @@ export default function App() {
             } else {
               ctx.fillText(currentLine, startX, startY);
             }
-            startY += lineHeight;
+            startY += customLineHeight;
           }
         }
       };
 
-      wrapTextHelper(drawText, activeLang.id === "ar", 28, fontName);
+      // Set elegant larger sizes: cursive fonts like Zhi Mang Xing, Caveat are scaled to 40px to stand out, print is 34px
+      const primaryFontSize = writingStyle === "cursive" ? 42 : 35;
+      const primaryLineHeight = 48; // Matches our lineGap exactly
+
+      wrapTextHelper(drawText, activeLang.id === "ar", primaryFontSize, fontName, primaryLineHeight);
 
       // Draw Separator line
       ctx.strokeStyle = "#e2e8f0";
@@ -592,9 +595,9 @@ export default function App() {
       startY += 50;
       if (translatedText) {
         ctx.fillStyle = "#2c5282";
-        ctx.font = "bold 20px 'Inter', sans-serif";
+        ctx.font = "bold 22px 'Inter', sans-serif";
         ctx.fillText(`TRADUZIONE IN ${targetLangName.toUpperCase()}:`, 150, startY);
-        startY += 30;
+        startY += 40;
 
         ctx.fillStyle = "#2d3748";
         // Find matching target lang font for translation display
@@ -626,7 +629,9 @@ export default function App() {
           }
         }
 
-        wrapTextHelper(translatedText, targetLangObj?.id === "ar", 24, translationFont);
+        const translationFontSize = writingStyle === "cursive" ? 36 : 30;
+        const translationLineHeight = 42;
+        wrapTextHelper(translatedText, targetLangObj?.id === "ar", translationFontSize, translationFont, translationLineHeight);
       }
 
       // Append user manual tracing brush on top of rendered PDF!
@@ -718,13 +723,13 @@ ${linksList.map((m, i) => `${i+1}. [${m.type.toUpperCase()}] ${m.label || ""}: $
     if (writingStyle === "cursive") {
       switch (targetObj.id) {
         case "it": return "font-latin-cursive";
-        case "ru": return "font-russian-cursive text-[2.2rem]";
+        case "ru": return "font-russian-cursive text-[1.4rem]";
         case "ar": return "font-arabic-cursive text-[2.2rem]";
-        case "zh": return "font-chinese-cursive text-[2.2rem]";
-        case "ja": return "font-japanese-cursive text-[2.2rem]";
-        case "ko": return "font-korean-cursive text-[2.2rem]";
-        case "hi": return "font-hindi-cursive text-[2.2rem]";
-        case "th": return "font-thai-cursive text-[2.2rem]";
+        case "zh": return "font-chinese-cursive text-[2rem]";
+        case "ja": return "font-japanese-cursive text-[1.8rem]";
+        case "ko": return "font-korean-cursive text-[1.8rem]";
+        case "hi": return "font-hindi-cursive text-[1.8rem]";
+        case "th": return "font-thai-cursive text-[1.8rem]";
         default: return "font-latin-cursive";
       }
     } else {
