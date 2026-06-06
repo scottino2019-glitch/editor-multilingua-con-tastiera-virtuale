@@ -718,13 +718,13 @@ ${linksList.map((m, i) => `${i+1}. [${m.type.toUpperCase()}] ${m.label || ""}: $
     if (writingStyle === "cursive") {
       switch (targetObj.id) {
         case "it": return "font-latin-cursive";
-        case "ru": return "font-russian-cursive text-[1.4rem]";
+        case "ru": return "font-russian-cursive text-[2.2rem]";
         case "ar": return "font-arabic-cursive text-[2.2rem]";
-        case "zh": return "font-chinese-cursive text-[2rem]";
-        case "ja": return "font-japanese-cursive text-[1.8rem]";
-        case "ko": return "font-korean-cursive text-[1.8rem]";
-        case "hi": return "font-hindi-cursive text-[1.8rem]";
-        case "th": return "font-thai-cursive text-[1.8rem]";
+        case "zh": return "font-chinese-cursive text-[2.2rem]";
+        case "ja": return "font-japanese-cursive text-[2.2rem]";
+        case "ko": return "font-korean-cursive text-[2.2rem]";
+        case "hi": return "font-hindi-cursive text-[2.2rem]";
+        case "th": return "font-thai-cursive text-[2.2rem]";
         default: return "font-latin-cursive";
       }
     } else {
