@@ -410,6 +410,37 @@ export default function App() {
   // rendering Arabic, Chinese characters, Russian Cyrillic cursive perfectly on physical-looking notebook grids.
   const handleExportPDF = async () => {
     try {
+      // 1. Preload any attached images asynchronously via proxy to bypass CORS canvas taint errors
+      const loadedImages: { url: string; img: HTMLImageElement; isTainted: boolean }[] = [];
+      const imageLinks = linksList.filter(l => l.type === "image");
+      
+      for (const m of imageLinks) {
+        try {
+          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const tempImg = new Image();
+            tempImg.crossOrigin = "anonymous";
+            tempImg.onload = () => resolve(tempImg);
+            tempImg.onerror = () => reject(new Error("Image load fail"));
+            // Fetch via our local or Netlify proxy to prevent canvas taints
+            tempImg.src = `/api/proxy-image?url=${encodeURIComponent(m.url)}`;
+          });
+          loadedImages.push({ url: m.url, img, isTainted: false });
+        } catch (e) {
+          console.warn("Failed to load image via proxy anonymous, trying raw load directly as fallback:", m.url);
+          try {
+            const imgNoCors = await new Promise<HTMLImageElement>((resolve, reject) => {
+              const tempImg = new Image();
+              tempImg.onload = () => resolve(tempImg);
+              tempImg.onerror = () => reject(new Error("Image raw load fail"));
+              tempImg.src = m.url;
+            });
+            loadedImages.push({ url: m.url, img: imgNoCors, isTainted: true });
+          } catch (err) {
+            console.error("Could not load image at all for PDF:", m.url);
+          }
+        }
+      }
+
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
@@ -632,6 +663,137 @@ export default function App() {
         const translationFontSize = writingStyle === "cursive" ? 36 : 30;
         const translationLineHeight = 42;
         wrapTextHelper(translatedText, targetLangObj?.id === "ar", translationFontSize, translationFont, translationLineHeight);
+      }
+
+      // Render Attached Media / Web Links if available directly onto the PDF-destined canvas!
+      if (linksList.length > 0) {
+        startY += 40;
+        if (startY < drawCanvas.height - 180) {
+          ctx.strokeStyle = "#e2e8f0";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(80, startY);
+          ctx.lineTo(drawCanvas.width - 80, startY);
+          ctx.stroke();
+
+          startY += 35;
+          ctx.fillStyle = "#4a5568";
+          ctx.font = "bold 20px 'Inter', sans-serif";
+          ctx.fillText("ALLEGATI E RISORSE COLLEGATE:", 150, startY);
+          startY += 35;
+
+          const scaleX = 210 / drawCanvas.width;
+          const scaleY = 297 / drawCanvas.height;
+
+          for (const m of linksList) {
+            if (startY > drawCanvas.height - 160) break;
+
+            if (m.type === "image") {
+              let imgDrawn = false;
+              const match = loadedImages.find(li => li.url === m.url);
+              if (match && !match.isTainted) {
+                try {
+                  const maxImgW = 320;
+                  const maxImgH = 160;
+                  let dW = match.img.width || 100;
+                  let dH = match.img.height || 100;
+                  const ratio = Math.min(maxImgW / dW, maxImgH / dH);
+                  dW = dW * ratio;
+                  dH = dH * ratio;
+
+                  // Render double border around user image
+                  ctx.fillStyle = "#ffffff";
+                  ctx.strokeStyle = "#e2e8f0";
+                  ctx.lineWidth = 1.5;
+                  ctx.beginPath();
+                  if (ctx.roundRect) {
+                    ctx.roundRect(150, startY - 15, dW + 30, dH + 30, 8);
+                  } else {
+                    ctx.rect(150, startY - 15, dW + 30, dH + 30);
+                  }
+                  ctx.fill();
+                  ctx.stroke();
+
+                  ctx.drawImage(match.img, 165, startY, dW, dH);
+                  
+                  // Embed clickable link hotspot in jsPDF coordinates
+                  const pdfImgX = 165 * scaleX;
+                  const pdfImgY = startY * scaleY;
+                  const pdfImgW = dW * scaleX;
+                  const pdfImgH = dH * scaleY;
+                  doc.link(pdfImgX, pdfImgY, pdfImgW, pdfImgH, { url: m.url });
+
+                  startY += dH + 40;
+                  imgDrawn = true;
+                } catch (e) {
+                  console.error("Error drawing image onto canvas:", e);
+                }
+              }
+
+              if (!imgDrawn) {
+                // Fallback graphic card for CORS-tainted images
+                ctx.fillStyle = "#f8fafc";
+                ctx.strokeStyle = "#cbd5e0";
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                  ctx.roundRect(150, startY - 15, 600, 75, 8);
+                } else {
+                  ctx.rect(150, startY - 15, 600, 75);
+                }
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = "#3182ce";
+                ctx.font = "bold 15px 'Inter', sans-serif";
+                ctx.fillText(`🌆 [IMMAGINE] ${m.label || "Immagine esterna collegata"}`, 170, startY + 15);
+                
+                ctx.fillStyle = "#4a5568";
+                ctx.font = "12px 'Inter', sans-serif";
+                ctx.fillText(`Clicca qui per visualizzare l'immagine sul browser: ${m.url.substring(0, 75)}${m.url.length > 75 ? "..." : ""}`, 170, startY + 40);
+
+                // Add active jsPDF clickable link hot-zone overlay
+                const linkX = 150 * scaleX;
+                const linkY = (startY - 15) * scaleY;
+                const linkW = 600 * scaleX;
+                const linkH = 75 * scaleY;
+                doc.link(linkX, linkY, linkW, linkH, { url: m.url });
+
+                startY += 90;
+              }
+            } else {
+              // External hyperlink resource element
+              ctx.fillStyle = "#f8fafc";
+              ctx.strokeStyle = "#cbd5e0";
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(150, startY - 15, 600, 75, 8);
+              } else {
+                ctx.rect(150, startY - 15, 600, 75);
+              }
+              ctx.fill();
+              ctx.stroke();
+
+              ctx.fillStyle = "#2b6cb0";
+              ctx.font = "bold 15px 'Inter', sans-serif";
+              ctx.fillText(`🔗 [LIVE LINK] ${m.label || "Risorsa di approfondimento collegata"}`, 170, startY + 15);
+
+              ctx.fillStyle = "#4a5568";
+              ctx.font = "12px 'Inter', sans-serif";
+              ctx.fillText(`Clicca per visitare il sito esterno: ${m.url.substring(0, 75)}${m.url.length > 75 ? "..." : ""}`, 170, startY + 40);
+
+              // Add active jsPDF clickable link hot-zone overlay
+              const linkX = 150 * scaleX;
+              const linkY = (startY - 15) * scaleY;
+              const linkW = 600 * scaleX;
+              const linkH = 75 * scaleY;
+              doc.link(linkX, linkY, linkW, linkH, { url: m.url });
+
+              startY += 90;
+            }
+          }
+        }
       }
 
       // Append user manual tracing brush on top of rendered PDF!
