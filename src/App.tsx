@@ -1786,7 +1786,6 @@ ${linksList.map((m, i) => `${i+1}. [${m.type.toUpperCase()}] ${m.label || ""}: $
               <button
                 onClick={() => {
                   setIsDrawingMode(prev => !prev);
-                  if (isDrawingMode) clearCanvas();
                 }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   isDrawingMode 
