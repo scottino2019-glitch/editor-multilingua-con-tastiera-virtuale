@@ -319,83 +319,22 @@ export default function App() {
     }
   };
 
-  // Canvas Drawing routines (Calligraphy & Tracing practice)
+  // Keep brush settings synced inside refs for ultra-responsive lag-free drawing on mobile/tablet
+  const brushColorRef = useRef(brushColor);
+  const brushWidthRef = useRef(brushWidth);
+  const isDrawingModeRef = useRef(isDrawingMode);
+
   useEffect(() => {
-    const canvas = previewCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    brushColorRef.current = brushColor;
+  }, [brushColor]);
 
-    // Set canvas dimensions relative to its container
-    const resizeCanvas = () => {
-      const container = canvas.parentElement;
-      if (container) {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        clearCanvas(); // Clear when resizing
-      }
-    };
+  useEffect(() => {
+    brushWidthRef.current = brushWidth;
+  }, [brushWidth]);
 
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-    return () => window.removeEventListener("resize", resizeCanvas);
+  useEffect(() => {
+    isDrawingModeRef.current = isDrawingMode;
   }, [isDrawingMode]);
-
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawingMode) return;
-    const canvas = previewCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    isDrawingRef.current = true;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = brushColor;
-    ctx.lineWidth = brushWidth;
-
-    const pos = getEventCoords(e, canvas);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  };
-
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawingRef.current || !isDrawingMode) return;
-    const canvas = previewCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Prevent scrolling when drawing on mobile touch devices
-    if (e.cancelable) e.preventDefault();
-
-    const pos = getEventCoords(e, canvas);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  };
-
-  const stopDrawing = () => {
-    isDrawingRef.current = false;
-  };
-
-  const getEventCoords = (
-    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
-    canvas: HTMLCanvasElement
-  ) => {
-    const rect = canvas.getBoundingClientRect();
-    if ("touches" in e) {
-      if (e.touches.length > 0) {
-        return {
-          x: e.touches[0].clientX - rect.left,
-          y: e.touches[0].clientY - rect.top
-        };
-      }
-    }
-    return {
-      x: (e as React.MouseEvent).clientX - rect.left,
-      y: (e as React.MouseEvent).clientY - rect.top
-    };
-  };
 
   const clearCanvas = () => {
     const canvas = previewCanvasRef.current;
@@ -404,6 +343,110 @@ export default function App() {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
+
+  // Canvas Drawing routines (Calligraphy & Tracing practice)
+  // Utilizza listener nativi di tipo { passive: false } per sconfiggere il blocco passivo dei browser mobili
+  // e prevenire i salti della pagina durante il disegno a mano sul cellulare
+  useEffect(() => {
+    const canvas = previewCanvasRef.current;
+    if (!canvas) return;
+
+    // Set canvas dimensions relative to its container
+    const resizeCanvas = () => {
+      const container = canvas.parentElement;
+      if (container) {
+        if (canvas.width !== container.clientWidth || canvas.height !== container.clientHeight) {
+          canvas.width = container.clientWidth;
+          canvas.height = container.clientHeight;
+          clearCanvas(); // Clear when resizing
+        }
+      }
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    const handleStart = (e: MouseEvent | TouchEvent) => {
+      if (!isDrawingModeRef.current) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      isDrawingRef.current = true;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = brushColorRef.current;
+      ctx.lineWidth = brushWidthRef.current;
+
+      const pos = getNativeCoords(e, canvas);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    };
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDrawingRef.current || !isDrawingModeRef.current) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // Force block scrolling & screen drag on mobile/touch interfaces while actively drawing
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+
+      const pos = getNativeCoords(e, canvas);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    };
+
+    const handleEnd = () => {
+      isDrawingRef.current = false;
+    };
+
+    const getNativeCoords = (ev: MouseEvent | TouchEvent, cvs: HTMLCanvasElement) => {
+      const rect = cvs.getBoundingClientRect();
+      const scaleX = cvs.width / rect.width;
+      const scaleY = cvs.height / rect.height;
+
+      if ("touches" in ev && ev.touches && ev.touches.length > 0) {
+        return {
+          x: (ev.touches[0].clientX - rect.left) * scaleX,
+          y: (ev.touches[0].clientY - rect.top) * scaleY
+        };
+      } else if ("changedTouches" in ev && ev.changedTouches && ev.changedTouches.length > 0) {
+        return {
+          x: (ev.changedTouches[0].clientX - rect.left) * scaleX,
+          y: (ev.changedTouches[0].clientY - rect.top) * scaleY
+        };
+      }
+      return {
+        x: ((ev as MouseEvent).clientX - rect.left) * scaleX,
+        y: ((ev as MouseEvent).clientY - rect.top) * scaleY
+      };
+    };
+
+    // Attach native active listener to secure touchAction cancellation
+    canvas.addEventListener("mousedown", handleStart);
+    canvas.addEventListener("mousemove", handleMove);
+    canvas.addEventListener("mouseup", handleEnd);
+    canvas.addEventListener("mouseleave", handleEnd);
+
+    canvas.addEventListener("touchstart", handleStart, { passive: false });
+    canvas.addEventListener("touchmove", handleMove, { passive: false });
+    canvas.addEventListener("touchend", handleEnd, { passive: false });
+    canvas.addEventListener("touchcancel", handleEnd, { passive: false });
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+      canvas.removeEventListener("mousedown", handleStart);
+      canvas.removeEventListener("mousemove", handleMove);
+      canvas.removeEventListener("mouseup", handleEnd);
+      canvas.removeEventListener("mouseleave", handleEnd);
+
+      canvas.removeEventListener("touchstart", handleStart);
+      canvas.removeEventListener("touchmove", handleMove);
+      canvas.removeEventListener("touchend", handleEnd);
+      canvas.removeEventListener("touchcancel", handleEnd);
+    };
+  }, []);
 
   // Convert written text with custom styles into a gorgeous image-compatible UTF8-preserved PDF
   // This uses standard HTML Canvas rendering to draw the letters in the selected cursive/print font beautifully
@@ -1813,15 +1856,8 @@ ${linksList.map((m, i) => `${i+1}. [${m.type.toUpperCase()}] ${m.label || ""}: $
               {/* Calligraphy Brush drawing Canvas Layout overlay */}
               <canvas
                 ref={previewCanvasRef}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
                 className={`absolute inset-0 w-full h-full ${
-                  isDrawingMode ? "cursor-crosshair pointer-events-auto z-10" : "pointer-events-none z-[1]"
+                  isDrawingMode ? "cursor-crosshair pointer-events-auto z-10 touch-none" : "pointer-events-none z-[1]"
                 }`}
               />
 
